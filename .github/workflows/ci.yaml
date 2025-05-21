@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Check formatting
+        run: yarn fmt:check
+
+      - name: Check linting
+        run: yarn lint:check
+
+  build:
+    needs: [lint]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Run build
+        run: yarn build
+
+      - name: Save build artifacts cache
+        uses: actions/cache/save@v4
+        with:
+          key: build-artifacts-${{ github.sha }}
+          path: |
+            cache
+            out
+
+  test:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Restore build artifacts cache
+        uses: actions/cache/restore@v4
+        with:
+          key: build-artifacts-${{ github.sha }}
+          path: |
+            cache
+            out
+
+      - name: Show Forge Config
+        run: forge config
+
+      - name: Run Forge tests
+        run: yarn test

@@ -1,0 +1,30 @@
+name: Setup Environment Composite Action
+description: Installs Foundry, Node.js, Yarn and dependencies.
+
+runs:
+  using: composite
+  steps:
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+
+    - name: Show Forge version
+      shell: bash
+      run: forge --version
+
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: yarn
+
+    - name: Show Node.js version
+      shell: bash
+      run: node --version
+
+    - name: Show Yarn version
+      shell: bash
+      run: yarn --version
+
+    - name: Install dependencies
+      shell: bash
+      run: yarn install --frozen-lockfile

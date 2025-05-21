@@ -1,0 +1,15 @@
+# Ignore All Solidity files
+**/*.sol
+
+# dirs
+cache/
+coverage/
+node_modules/
+out/
+
+# files
+.env
+bun.lock
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
