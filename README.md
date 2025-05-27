@@ -9,6 +9,7 @@
 - [prettier](https://github.com/prettier/prettier): formats non-Solidity files
 - [solhint-community](https://github.com/solhint-community/solhint-community): lints Solidity smart contracts
 - [husky](https://github.com/typicode/husky): runs git hooks
+- [lint-staged](https://github.com/lint-staged/lint-staged): lints only staged files (in hooks)
 
 > Note: Make sure `foundry` and `yarn` are installed before proceeding
 
@@ -23,8 +24,9 @@
 CI is preconfigured to:
 
 1. check formatting and linting
-2. builds smart contracts
-3. runs tests
+2. build smart contracts
+3. run tests
+4. check test coverage percentage
 
 ## Installing Dependencies
 

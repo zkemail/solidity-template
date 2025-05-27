@@ -21,6 +21,7 @@
     "@types/node": "^22.15.21",
     "forge-std": "github:foundry-rs/forge-std#v1.9.7",
     "husky": "^9.1.7",
+    "lint-staged": "^16.0.0",
     "prettier": "^3.5.3",
     "solhint-community": "^4.0.1",
     "typescript": "^5.8.3"
