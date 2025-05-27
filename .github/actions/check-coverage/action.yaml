@@ -1,0 +1,41 @@
+name: Check Coverage
+description: Checks if test coverage meets the minimum threshold
+
+inputs:
+  lcov_file:
+    description: Path to the lcov.info file
+    default: lcov.info
+
+  minimum-coverage:
+    description: Minimum coverage threshold percentage
+    default: 90.00
+
+runs:
+  using: composite
+  steps:
+    - name: Run coverage check
+      shell: bash
+      run: |
+        # Sum total lines found (LF)
+        TOTAL_LINES=$(grep ^LF: "${{ inputs.lcov_file }}" | cut -d: -f2 | awk '{sum += $1} END {print sum}')
+
+        # Sum total lines hit (LH)
+        HIT_LINES=$(grep ^LH: "${{ inputs.lcov_file }}" | cut -d: -f2 | awk '{sum += $1} END {print sum}')
+
+        # Calculate coverage percentage (avoid division by zero)
+        if [ "$TOTAL_LINES" -eq 0 ]; then
+          LINE_COVERAGE=0
+        else
+          LINE_COVERAGE=$(echo "scale=2; $HIT_LINES*100 / $TOTAL_LINES" | bc)
+        fi
+
+        echo "Line coverage: $LINE_COVERAGE%"
+
+        # Compare using bc (handles float comparison)
+        PASSED=$(echo "$LINE_COVERAGE >= ${{ inputs.minimum-coverage }}" | bc)
+        if [ "$PASSED" = "1" ]; then
+          echo "✅ Coverage check passed ($LINE_COVERAGE%)"
+        else
+          echo "❌ Coverage too low ($LINE_COVERAGE% < ${{ inputs.minimum-coverage }}%)"
+          exit 1
+        fi

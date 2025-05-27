@@ -14,3 +14,4 @@ out/
 bun.lock
 package-lock.json
 pnpm-lock.yaml
+lcov.info

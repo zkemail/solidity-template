@@ -68,3 +68,29 @@ jobs:
 
       - name: Run Forge tests
         run: yarn test
+
+  coverage:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Restore build artifacts cache
+        uses: actions/cache/restore@v4
+        with:
+          key: build-artifacts-${{ github.sha }}
+          path: |
+            cache
+            out
+
+      - name: Generate coverage report
+        run: yarn coverage
+
+      - name: Check coverage threshold
+        uses: ./.github/actions/check-coverage
+        with:
+          minimum-coverage: 90.00
