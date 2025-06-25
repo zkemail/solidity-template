@@ -1,41 +1,150 @@
 name: Check Coverage
-description: Checks if test coverage meets the minimum threshold
+description: Checks test coverage against a minimum threshold and posts a report as a PR comment. Requires `pull-requests: write` permission.
 
 inputs:
   lcov_file:
-    description: Path to the lcov.info file
-    default: lcov.info
+    description: 'Path to the lcov.info file.'
+    default: 'lcov.info'
 
   minimum-coverage:
-    description: Minimum coverage threshold percentage
-    default: 90.00
+    description: 'Minimum coverage threshold percentage.'
+    default: '90.00'
+
+  github-token:
+    description: 'GitHub token for API access. Requires `pull-requests: write` permissions to post comments.'
+    required: true
 
 runs:
   using: composite
   steps:
     - name: Run coverage check
       shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
       run: |
-        # Sum total lines found (LF)
-        TOTAL_LINES=$(grep ^LF: "${{ inputs.lcov_file }}" | cut -d: -f2 | awk '{sum += $1} END {print sum}')
+        # =============================================================================
+        # SETUP AND ERROR HANDLING
+        # =============================================================================
+        # Exit immediately if a command exits with a non-zero status.
+        # Treat unset variables as an error and prevent errors in a pipeline from being masked.
+        set -euo pipefail
 
-        # Sum total lines hit (LH)
-        HIT_LINES=$(grep ^LH: "${{ inputs.lcov_file }}" | cut -d: -f2 | awk '{sum += $1} END {print sum}')
+        # Debug information
+        echo "🔍 Debug: Processing coverage file \"${{ inputs.lcov_file }}\""
+        echo "🔍 Debug: Minimum coverage threshold: ${{ inputs.minimum-coverage }}%"
+        echo "🔍 Debug: GitHub event: $GITHUB_EVENT_NAME"
 
-        # Calculate coverage percentage (avoid division by zero)
-        if [ "$TOTAL_LINES" -eq 0 ]; then
-          LINE_COVERAGE=0
-        else
-          LINE_COVERAGE=$(echo "scale=2; $HIT_LINES*100 / $TOTAL_LINES" | bc)
-        fi
-
-        echo "Line coverage: $LINE_COVERAGE%"
-
-        # Compare using bc (handles float comparison)
-        PASSED=$(echo "$LINE_COVERAGE >= ${{ inputs.minimum-coverage }}" | bc)
-        if [ "$PASSED" = "1" ]; then
-          echo "✅ Coverage check passed ($LINE_COVERAGE%)"
-        else
-          echo "❌ Coverage too low ($LINE_COVERAGE% < ${{ inputs.minimum-coverage }}%)"
+        # =============================================================================
+        # INPUT VALIDATION
+        # =============================================================================
+        if [ ! -f "${{ inputs.lcov_file }}" ]; then
+          echo "❌ Error: Coverage file not found at \"${{ inputs.lcov_file }}\""
           exit 1
         fi
+
+        if ! [[ "${{ inputs.minimum-coverage }}" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+          echo "❌ Error: Invalid minimum coverage value '${{ inputs.minimum-coverage }}'. Must be a number."
+          exit 1
+        fi
+
+        if ! awk -v val="${{ inputs.minimum-coverage }}" 'BEGIN { exit !(val >= 0 && val <= 100) }'; then
+          echo "❌ Error: Minimum coverage must be between 0 and 100, got: ${{ inputs.minimum-coverage }}"
+          exit 1
+        fi
+
+        # =============================================================================
+        # DEPENDENCY CHECKS
+        # =============================================================================
+        if ! command -v jq &> /dev/null; then
+          echo "❌ Error: 'jq' is required but not installed. Please add it to your workflow."
+          exit 1
+        fi
+
+        if ! command -v gh &> /dev/null; then
+          echo "❌ Error: GitHub CLI 'gh' is required but not installed. Please add it to your workflow."
+          exit 1
+        fi
+
+        # =============================================================================
+        # COVERAGE CALCULATION
+        # =============================================================================
+        # Use a single awk command to parse total and hit lines for efficiency.
+        # -F':' sets the field separator to a colon.
+        # /^LF:/ matches lines for total lines found.
+        # /^LH:/ matches lines for total lines hit.
+        # s+=$2 sums the second field (the count).
+        # END {print s+0} prints the total sum, defaulting to 0 if no lines were matched.
+        TOTAL_LINES=$(awk -F: '/^LF:/ {s+=$2} END {print s+0}' "${{ inputs.lcov_file }}")
+        HIT_LINES=$(awk -F: '/^LH:/ {s+=$2} END {print s+0}' "${{ inputs.lcov_file }}")
+
+        if [ "$TOTAL_LINES" -eq 0 ]; then
+          echo "❌ Error: No coverage data (LF lines) found in \"${{ inputs.lcov_file }}\"."
+          exit 1
+        fi
+
+        # Calculate coverage percentage
+        LINE_COVERAGE=$(awk "BEGIN {printf \"%.2f\", ($HIT_LINES / $TOTAL_LINES) * 100}")
+
+        echo "Line coverage: $LINE_COVERAGE% ($HIT_LINES / $TOTAL_LINES lines)"
+
+        # Compare coverage against the minimum threshold
+        PASSED=$(awk -v cov="$LINE_COVERAGE" -v min="${{ inputs.minimum-coverage }}" 'BEGIN { print (cov >= min) }')
+
+        # =============================================================================
+        # COMMENT GENERATION AND POSTING
+        # =============================================================================
+        if [ "$PASSED" = "1" ]; then
+          STATUS_ICON="✅"
+          STATUS_MESSAGE="Above threshold"
+          echo "✅ Coverage check passed ($LINE_COVERAGE% >= ${{ inputs.minimum-coverage }}%)"
+        else
+          STATUS_ICON="❌"
+          STATUS_MESSAGE="Below threshold"
+          echo "❌ Coverage too low ($LINE_COVERAGE% < ${{ inputs.minimum-coverage }}%)"
+        fi
+
+        COMMENT_TAG="<!-- coverage-check-comment -->"
+        COMMENT_BODY=$(cat <<-EOF
+          ### 📊 Coverage Report
+
+          | Metric | Coverage | Required | Status |
+          |--------|----------|----------|--------|
+          | Lines  | \`$LINE_COVERAGE%\` | \`${{ inputs.minimum-coverage }}%\` | $STATUS_ICON $STATUS_MESSAGE |
+
+          **Details**: $HIT_LINES of $TOTAL_LINES lines covered.
+
+          $COMMENT_TAG
+        EOF
+        )
+
+        if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
+          echo "⚠️ Not a pull request event. Skipping PR comment."
+        else
+          PR_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
+            echo "❌ Error: Could not determine PR number from event payload."
+            exit 1
+          fi
+
+          echo "🔍 Searching for existing comment on PR #$PR_NUMBER..."
+          # Find the ID of a previous comment to update it. Suppress errors and default to empty string.
+          COMMENT_ID=$(gh pr view "$PR_NUMBER" --json comments -q ".comments[] | select(.body | contains(\"$COMMENT_TAG\")) | .id" 2>/dev/null || echo "")
+
+          if [ -n "$COMMENT_ID" ]; then
+            echo "Found previous comment (ID: $COMMENT_ID). Updating it."
+            gh pr comment "$PR_NUMBER" --edit "$COMMENT_ID" --body "$COMMENT_BODY"
+          else
+            echo "No previous comment found. Creating a new one."
+            gh pr comment "$PR_NUMBER" --body "$COMMENT_BODY"
+          fi
+        fi
+
+        # =============================================================================
+        # FINAL EXIT STATUS
+        # =============================================================================
+        if [ "$PASSED" != "1" ]; then
+          echo "Failing the workflow because test coverage is below the threshold."
+          exit 1
+        fi
+
+        echo "✅ Coverage check completed successfully."
