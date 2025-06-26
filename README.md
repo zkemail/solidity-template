@@ -1,3 +1,5 @@
+<!-- Just for testing -->
+
 ## Solidity Template
 
 **Template for Solidity projects with a suite of useful tools pre-installed.**
