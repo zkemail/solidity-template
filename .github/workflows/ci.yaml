@@ -2,6 +2,9 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
+
   pull_request:
   workflow_dispatch:
 
@@ -94,3 +97,4 @@ jobs:
         uses: ./.github/actions/check-coverage
         with:
           minimum-coverage: 90.00
+          github-token: ${{ secrets.GITHUB_TOKEN }}
