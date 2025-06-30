@@ -57,7 +57,11 @@ runs:
         HIT_LINES=$(awk -F: '/^LH:/ {s+=$2} END {print s+0}' "${{ inputs.lcov_file }}")
 
         if [ "$TOTAL_LINES" -eq 0 ]; then
-          echo "❌ Error: No coverage data (LF lines) found in \"${{ inputs.lcov_file }}\"."
+          echo "❌ Error: No test coverage data found in \"${{ inputs.lcov_file }}\"."
+          echo "   This usually means either:"
+          echo "   - No tests were executed"
+          echo "   - The coverage file is empty"
+          echo "   - The coverage tool didn't generate line coverage information"
           exit 1
         fi
 
@@ -97,9 +101,9 @@ runs:
           fi
 
           echo "🔍 Searching for existing comment on PR #$PR_NUMBER..."
-          COMMENT_ID=$(gh api --paginate "/repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" | jq --arg tag "$COMMENT_TAG" --raw-output '.[] | select(.body | contains($tag)) | .id' | tail -n 1)
+          COMMENT_ID=$(gh api --paginate "/repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" | jq --arg tag "$COMMENT_TAG" --raw-output '[.[] | select(.body | contains($tag))] | sort_by(.created_at) | last | .id')
 
-          if [ -n "$COMMENT_ID" ]; then
+          if [ -n "$COMMENT_ID" ] && [ "$COMMENT_ID" != "null" ]; then
             echo "Found previous comment (ID: $COMMENT_ID). Updating it."
             BODY_JSON=$(jq -R --slurp '{body: .}' <<< "$COMMENT_BODY")
             # Update the comment and redirect the successful JSON output to /dev/null to keep logs clean.
