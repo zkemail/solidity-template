@@ -1,1 +1,2 @@
 yarn fmt:check
+yarn lint-staged
