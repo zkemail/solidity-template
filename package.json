@@ -32,7 +32,7 @@
   "scripts": {
     "build": "forge build --sizes",
     "clean": "forge clean",
-    "coverage": "forge coverage --report summary --report lcov --no-match-coverage script",
+    "coverage": "forge coverage --report summary --report lcov --no-match-coverage (script|test)",
     "fmt:check": "forge fmt --check && prettier --check .",
     "fmt": "forge fmt && prettier --write .",
     "lint:check": "solhint \"**/*.sol\"",
