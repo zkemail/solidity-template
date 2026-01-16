@@ -41,7 +41,7 @@ jobs:
         run: yarn build
 
       - name: Save build artifacts cache
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           key: build-artifacts-${{ github.sha }}
           path: |
@@ -59,7 +59,7 @@ jobs:
         uses: ./.github/actions/setup-environment
 
       - name: Restore build artifacts cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           key: build-artifacts-${{ github.sha }}
           path: |
@@ -83,7 +83,7 @@ jobs:
         uses: ./.github/actions/setup-environment
 
       - name: Restore build artifacts cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           key: build-artifacts-${{ github.sha }}
           path: |
