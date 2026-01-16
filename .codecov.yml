@@ -1,0 +1,11 @@
+# always validate config file before pushing using:
+# curl --data-binary @.codecov.yml https://codecov.io/validate
+coverage:
+  status:
+    project:
+      default:
+        # minimum coverage ratio that the commit must meet
+        # auto will use the coverage from the base commit
+        target: auto
+        # allow the coverage to drop by threshold %
+        threshold: 0%

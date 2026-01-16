@@ -93,8 +93,7 @@ jobs:
       - name: Generate coverage report
         run: yarn coverage
 
-      - name: Check coverage threshold
-        uses: ./.github/actions/check-coverage
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          minimum-coverage: 90.00
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.CODECOV_TOKEN }}
