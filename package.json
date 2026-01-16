@@ -16,15 +16,15 @@
   },
   "packageManager": "yarn@1.22.22",
   "devDependencies": {
-    "@commitlint/cli": "^19.8.1",
-    "@commitlint/config-conventional": "^19.8.1",
-    "@types/node": "^22.15.21",
+    "@commitlint/cli": "20.3.1",
+    "@commitlint/config-conventional": "20.3.1",
+    "@types/node": "25.0.9",
     "forge-std": "github:foundry-rs/forge-std#v1.14.0",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.0.0",
-    "prettier": "^3.5.3",
-    "solhint-community": "^4.0.1",
-    "typescript": "^5.8.3"
+    "husky": "9.1.7",
+    "lint-staged": "16.2.7",
+    "prettier": "3.8.0",
+    "solhint-community": "4.0.1",
+    "typescript": "5.9.3"
   },
   "dependencies": {
     "@openzeppelin/contracts": "5.5.0"
