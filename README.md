@@ -10,6 +10,7 @@
 - [solhint-community](https://github.com/solhint-community/solhint-community): lints Solidity smart contracts
 - [husky](https://github.com/typicode/husky): runs git hooks
 - [lint-staged](https://github.com/lint-staged/lint-staged): lints only staged files (in hooks)
+- [codecov](https://github.com/codecov/codecov-action): coverage report and enforcing
 
 > Note: Make sure `foundry` and `yarn` are installed before proceeding
 
@@ -26,7 +27,9 @@ CI is preconfigured to:
 1. check formatting and linting
 2. build smart contracts
 3. run tests
-4. check test coverage percentage
+4. check test coverage percentage and upload report to codecov
+
+> Note: You need to set a `CODECOV_TOKEN` repository secret that holds your access token, see [Codecov docs](https://docs.codecov.com/docs/codecov-tokens) explaining how to generate and set your token
 
 ## Installing Dependencies
 
